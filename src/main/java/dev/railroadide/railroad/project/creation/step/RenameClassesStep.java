@@ -1,5 +1,6 @@
 package dev.railroadide.railroad.project.creation.step;
 
+import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.printer.configuration.DefaultConfigurationOption;
@@ -55,6 +56,10 @@ public record RenameClassesStep(FilesService files) implements CreationStep {
         compilationUnit.getClassByName("ExampleMod").ifPresent(c -> c.setName(mainClassName));
         compilationUnit.setPackageDeclaration(groupId + "." + modId);
         files.writeString(newMainClassPath, compilationUnit.toString(DEFAULT_PRINTER_CONFIGURATION));
+
+        ParserConfiguration config = new ParserConfiguration();
+        config.setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17);
+        StaticJavaParser.setConfiguration(config);
 
         // Find the example mixin
         Path mixinPath = rootPackagePath.resolve("mixins").resolve("ExampleMixin.java");

@@ -1,5 +1,7 @@
 package dev.railroadide.railroad;
 
+import com.github.javaparser.ParserConfiguration;
+import com.github.javaparser.StaticJavaParser;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import dev.railroadide.core.utility.ServiceLocator;

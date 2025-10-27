@@ -51,12 +51,12 @@ public final class DefaultProjectCreationPipelineService implements ProjectCreat
                 new UpdateFabricModJsonStep(services.get(FilesService.class)),
                 new RenameMixinsStep(services.get(FilesService.class)),
                 new RenameClassesStep(services.get(FilesService.class)),
-                new UpdateGradleFilesStep(services.get(FilesService.class), services.get(HttpService.class),
+                new UpdateFabricGradleFilesStep(services.get(FilesService.class), services.get(HttpService.class),
                     services.get(TemplateEngineService.class), "dev", false),
                 new RunGenSourcesStep(services.get(GradleService.class)),
                 new InitGitStep(services.get(GitService.class))
             );
-        } else if (type.equals(ProjectTypeRegistry.FORGE) || type.equals(ProjectTypeRegistry.NEOFORGE)) {
+        } else if (type.equals(ProjectTypeRegistry.FORGE)) {
             registry.addAll(
                 new CreateDirectoriesStep(services.get(FilesService.class)),
                 new DownloadForgeMdkStep(
@@ -67,7 +67,26 @@ public final class DefaultProjectCreationPipelineService implements ProjectCreat
                 new RenamePackagesStep(services.get(FilesService.class)),
                 new UpdateForgeModsTomlStep(services.get(FilesService.class)),
                 new RenameClassesStep(services.get(FilesService.class)),
-                new UpdateGradleFilesStep(
+                new UpdateForgeGradleFilesStep(
+                    services.get(FilesService.class), services.get(HttpService.class),
+                    services.get(TemplateEngineService.class), "dev", true),
+                new CreateMixinsJsonStep(services.get(FilesService.class)),
+                new CreateAccessTransformerStep(services.get(FilesService.class)),
+                new SetupForgeGradleWrapperStep(services.get(GradleService.class)),
+                new InitGitStep(services.get(GitService.class))
+            );
+        } else if (type.equals(ProjectTypeRegistry.NEOFORGE)) {
+            registry.addAll(
+                new CreateDirectoriesStep(services.get(FilesService.class)),
+                new DownloadNeoforgeMdkStep(
+                    services.get(HttpService.class), services.get(FilesService.class),
+                    services.get(ZipService.class), services.get(ChecksumService.class)),
+                new ExtractForgeMdkStep(services.get(FilesService.class), services.get(ZipService.class)),
+                new UpdateGradlePropertiesStep(services.get(FilesService.class)),
+                new RenamePackagesStep(services.get(FilesService.class)),
+                new UpdateForgeModsTomlStep(services.get(FilesService.class)),
+                new RenameClassesStep(services.get(FilesService.class)),
+                new UpdateForgeGradleFilesStep(
                     services.get(FilesService.class), services.get(HttpService.class),
                     services.get(TemplateEngineService.class), "dev", true),
                 new CreateMixinsJsonStep(services.get(FilesService.class)),

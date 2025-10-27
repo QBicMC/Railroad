@@ -48,7 +48,7 @@ public record UpdateGradlePropertiesStep(FilesService files) implements Creation
 
         MappingChannel mappingChannel = ctx.data().get(MinecraftProjectKeys.MAPPING_CHANNEL, MappingChannel.class);
         if (mappingChannel == null)
-            mappingChannel = UpdateGradleFilesStep.getDefaultMappingChannel(projectType);
+            mappingChannel = UpdateFabricGradleFilesStep.getDefaultMappingChannel(projectType);
         String channelId = mappingChannel.id().toLowerCase(Locale.ROOT);
         if (channelId.equals("mojmap"))
             channelId = "official";
