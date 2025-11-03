@@ -31,8 +31,21 @@ public record UpdateForgeModsTomlStep(FilesService files) implements CreationSte
         reporter.info("Updating mods.toml...");
 
         Path modsTomlPath = ctx.projectDir().resolve("src/main/resources/META-INF/mods.toml");
-        if (!files.exists(modsTomlPath))
+        if (!files.exists(modsTomlPath)) {
+            modsTomlPath = ctx.projectDir().resolve("src/main/resources/META-INF/neoforge.mods.toml");
+        }
+
+        if (!files.exists(modsTomlPath)) {
+            modsTomlPath = ctx.projectDir().resolve("src/main/templates/META-INF/mods.toml");
+        }
+
+        if (!files.exists(modsTomlPath)) {
+            modsTomlPath = ctx.projectDir().resolve("src/main/templates/META-INF/neoforge.mods.toml");
+        }
+
+        if (!files.exists(modsTomlPath)) {
             throw new IllegalStateException("mods.toml not found at " + modsTomlPath);
+        }
 
         boolean hasIssues = ctx.data().contains(ProjectData.DefaultKeys.ISSUES_URL);
         boolean hasUpdateJson = ctx.data().contains(ForgeProjectKeys.UPDATE_JSON_URL);

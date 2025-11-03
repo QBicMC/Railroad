@@ -49,6 +49,7 @@ public record UpdateGradlePropertiesStep(FilesService files) implements Creation
         MappingChannel mappingChannel = ctx.data().get(MinecraftProjectKeys.MAPPING_CHANNEL, MappingChannel.class);
         if (mappingChannel == null)
             mappingChannel = UpdateFabricGradleFilesStep.getDefaultMappingChannel(projectType);
+
         String channelId = mappingChannel.id().toLowerCase(Locale.ROOT);
         if (channelId.equals("mojmap"))
             channelId = "official";
@@ -64,11 +65,12 @@ public record UpdateGradlePropertiesStep(FilesService files) implements Creation
         String modId = ctx.data().getAsString(MinecraftProjectKeys.MOD_ID);
         String modName = ctx.data().getAsString(MinecraftProjectKeys.MOD_NAME);
         License license = ctx.data().getOrDefault(ProjectData.DefaultKeys.LICENSE, LicenseRegistry.LGPL, License.class);
-        String licenseStr = license == LicenseRegistry.CUSTOM ? ctx.data().getAsString(ProjectData.DefaultKeys.LICENSE_CUSTOM) : license.getSpdxId();
+        String licenseStr = license == LicenseRegistry.CUSTOM
+            ? ctx.data().getAsString(ProjectData.DefaultKeys.LICENSE_CUSTOM)
+            : license.getSpdxId();
 
         String version = ctx.data().getAsString(MavenProjectKeys.VERSION);
         String groupId = ctx.data().getAsString(MavenProjectKeys.GROUP_ID);
-
         String authors = ctx.data().getAsString(ProjectData.DefaultKeys.AUTHOR, "");
         String description = ctx.data().getAsString(ProjectData.DefaultKeys.DESCRIPTION, "");
 
@@ -82,6 +84,7 @@ public record UpdateGradlePropertiesStep(FilesService files) implements Creation
             files.updateKeyPairInPropertiesFile(propsFile, "minecraft_version", minecraftVersion.id());
             files.updateKeyPairInPropertiesFile(propsFile, "loader_version", loaderVersion.version());
             files.updateKeyPairInPropertiesFile(propsFile, "fabric_version", fabricApiVersion);
+
             if (mappingChannel == MappingChannelRegistry.YARN) {
                 files.updateKeyPairInPropertiesFile(propsFile, "yarn_mappings", mappingVersion);
             } else if (mappingChannel == MappingChannelRegistry.PARCHMENT) {
@@ -90,20 +93,39 @@ public record UpdateGradlePropertiesStep(FilesService files) implements Creation
 
             files.updateKeyPairInPropertiesFile(propsFile, "mod_version", version);
             files.updateKeyPairInPropertiesFile(propsFile, "maven_group", groupId);
-            files.updateKeyPairInPropertiesFile(propsFile, "archives_base_name", ctx.data().getAsString(MavenProjectKeys.ARTIFACT_ID, modId));
-        } else if (projectType.equals(ProjectTypeRegistry.FORGE) || projectType.equals(ProjectTypeRegistry.NEOFORGE)) {// TODO: Confirm for neoforge
+            files.updateKeyPairInPropertiesFile(propsFile, "archives_base_name",
+                ctx.data().getAsString(MavenProjectKeys.ARTIFACT_ID, modId));
+
+        } else if (projectType.equals(ProjectTypeRegistry.FORGE)) {
+            // Forge uses separate mapping_channel and mapping_version properties
             files.updateKeyPairInPropertiesFile(propsFile, "mapping_channel", channelId);
             files.updateKeyPairInPropertiesFile(propsFile, "mapping_version", mappingVersion);
 
             files.updateKeyPairInPropertiesFile(propsFile, "mod_id", modId);
             files.updateKeyPairInPropertiesFile(propsFile, "mod_name", modName);
             files.updateKeyPairInPropertiesFile(propsFile, "mod_license", licenseStr);
-
             files.updateKeyPairInPropertiesFile(propsFile, "mod_version", version);
             files.updateKeyPairInPropertiesFile(propsFile, "mod_group_id", groupId);
-
             files.updateKeyPairInPropertiesFile(propsFile, "mod_authors", authors);
             files.updateKeyPairInPropertiesFile(propsFile, "mod_description", "'''" + description + "'''");
+
+        } else if (projectType.equals(ProjectTypeRegistry.NEOFORGE)) {
+            String mappingsValue = channelId + "_" + mappingVersion;
+
+            try {
+                files.updateKeyPairInPropertiesFile(propsFile, "mappings", mappingsValue);
+            } catch (Exception e) {
+                reporter.info("No mappings property found in gradle.properties (this is normal for NeoForge)");
+            }
+
+            files.updateKeyPairInPropertiesFile(propsFile, "mod_id", modId);
+            files.updateKeyPairInPropertiesFile(propsFile, "mod_name", modName);
+            files.updateKeyPairInPropertiesFile(propsFile, "mod_license", licenseStr);
+            files.updateKeyPairInPropertiesFile(propsFile, "mod_version", version);
+            files.updateKeyPairInPropertiesFile(propsFile, "mod_group_id", groupId);
+            files.updateKeyPairInPropertiesFile(propsFile, "mod_authors", authors);
+            files.updateKeyPairInPropertiesFile(propsFile, "mod_description", "'''" + description + "'''");
+
         } else {
             throw new IllegalStateException("Unsupported project type: " + projectType.getName());
         }

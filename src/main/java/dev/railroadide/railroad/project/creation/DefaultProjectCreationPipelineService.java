@@ -81,7 +81,7 @@ public final class DefaultProjectCreationPipelineService implements ProjectCreat
                 new DownloadNeoforgeMdkStep(
                     services.get(HttpService.class), services.get(FilesService.class),
                     services.get(ZipService.class), services.get(ChecksumService.class)),
-                new ExtractForgeMdkStep(services.get(FilesService.class), services.get(ZipService.class)),
+                new ExtractNeoforgeMdkStep(services.get(FilesService.class), services.get(ZipService.class)),
                 new UpdateGradlePropertiesStep(services.get(FilesService.class)),
                 new RenamePackagesStep(services.get(FilesService.class)),
                 new UpdateForgeModsTomlStep(services.get(FilesService.class)),

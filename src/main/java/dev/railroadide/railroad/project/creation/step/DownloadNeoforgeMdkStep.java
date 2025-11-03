@@ -7,7 +7,9 @@ import dev.railroadide.core.project.creation.service.ChecksumService;
 import dev.railroadide.core.project.creation.service.FilesService;
 import dev.railroadide.core.project.creation.service.HttpService;
 import dev.railroadide.core.project.creation.service.ZipService;
+import dev.railroadide.core.switchboard.pojo.MinecraftVersion;
 import dev.railroadide.railroad.project.data.ForgeProjectKeys;
+import dev.railroadide.railroad.project.data.MinecraftProjectKeys;
 
 import java.net.URI;
 import java.nio.file.Path;
@@ -16,45 +18,57 @@ public record DownloadNeoforgeMdkStep(HttpService http, FilesService files, ZipS
                                       ChecksumService checksum) implements CreationStep {
     @Override
     public String id() {
-        return "railroad:download_neoforge_installer";
+        return "railroad:download_neoforge_mdk";
     }
 
     @Override
     public String translationKey() {
-        return "railroad.project.creation.task.download_neoforge_installer";
+        return "railroad.project.creation.task.download_neoforge_mdk";
     }
 
     @Override
     public void run(ProjectContext ctx, ProgressReporter reporter) throws Exception {
-        reporter.info("Downloading NeoForge installer...");
+        reporter.info("Downloading NeoForge MDK...");
 
         String neoForgeVersion = ctx.data().getAsString(ForgeProjectKeys.FORGE_VERSION);
         if (neoForgeVersion == null)
             throw new IllegalStateException("NeoForge version is not set");
 
+        MinecraftVersion minecraftVersion = (MinecraftVersion) ctx.data().get(MinecraftProjectKeys.MINECRAFT_VERSION);
+        if (minecraftVersion == null)
+            throw new IllegalStateException("Minecraft version is not set");
+
         Path projectDir = ctx.projectDir();
+        Path mdkZip = projectDir.resolve("neoforge-mdk.zip");
 
-        String baseUrl = "https://maven.neoforged.net/releases/net/neoforged/neoforge/";
-        String installerUrl = baseUrl + neoForgeVersion + "/neoforge-" + neoForgeVersion + "-installer.zip";
-        String sha256Url = installerUrl + ".sha256";
+        String repoBase = "https://github.com/NeoForgeMDKs/MDK-NeoForge-" + minecraftVersion.id();
+        String neoGradleRelease = "https://github.com/NeoForgeMDKs/MDK-" + minecraftVersion.id() + "-NeoGradle/releases/download/" + neoForgeVersion + "/";
+        String moddevRelease = "https://github.com/NeoForgeMDKs/MDK-" + minecraftVersion.id() + "-ModDevGradle/releases/download/" + neoForgeVersion + "/";
+        String fileName = "neoforged-mdk-" + neoForgeVersion + ".zip";
 
-        Path installerPath = projectDir.resolve("neoforge-installer.zip");
+        boolean success = false;
 
-        http.download(new URI(installerUrl), installerPath);
+        try {
+            http.download(new URI(moddevRelease + fileName), mdkZip);
+            success = true;
+        } catch (Exception ignored) {}
 
-        reporter.info("Verifying NeoForge installer checksum...");
-        Path sha256Path = projectDir.resolve("neoforge-installer.zip.sha256");
-        http.download(new URI(sha256Url), sha256Path);
-
-        String expectedChecksum = files.readString(sha256Path).trim();
-        if (!checksum.verify(installerPath, "SHA-256", expectedChecksum)) {
-            reporter.info("Cleaning up invalid NeoForge installer files...");
-            files.delete(installerPath);
-            files.delete(sha256Path);
-            throw new IllegalStateException("Downloaded NeoForge installer checksum does not match expected value");
+        if (!success) {
+            try {
+                http.download(new URI(neoGradleRelease + fileName), mdkZip);
+                success = true;
+            } catch (Exception ignored) {}
         }
 
-        reporter.info("Cleanup temporary files...");
-        files.delete(sha256Path);
+        if (!success) {
+            reporter.info("No release found — downloading source archive instead...");
+            String fallbackUrlNeoGradle = "https://github.com/NeoForgeMDKs/MDK-" + minecraftVersion.id() + "-NeoGradle/archive/refs/heads/main.zip";
+            String fallbackUrlModDev = "https://github.com/NeoForgeMDKs/MDK-" + minecraftVersion.id() + "-ModDevGradle/archive/refs/heads/main.zip";
+            try {
+                http.download(new URI(fallbackUrlModDev), mdkZip);
+            } catch (Exception e) {
+                http.download(new URI(fallbackUrlNeoGradle), mdkZip);
+            }
+        }
     }
 }
